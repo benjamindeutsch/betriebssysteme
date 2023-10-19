@@ -28,13 +28,17 @@ int get_digit_count(int number){
  * @brief Compresses the input string by truncating substrings consisting of the same letter. 
  * @return the compressed version of the input string.
  */
+/*@null@*/
 char *compress(char *input){
 	assert(input != NULL);
 	//the maximum length of the result is the size of the input * 2
-	int length = strlen(input);
-	char *result = (char *) malloc(length * sizeof(char) * 2);
+	char *result = (char *) malloc(strlen(input) * sizeof(char) * 2);
+	if(result == NULL){
+		printf("Memory allocation error\n");
+		return NULL;
+	}
 	int result_index = 0;
-	int last_char = input[0];
+	char last_char = input[0];
 	int last_char_count = 1;
 	
 	bool exit = false;
@@ -65,7 +69,6 @@ char *compress(char *input){
 	char *reallocated = (char *) realloc(result,strlen(result) * sizeof(char));
 	if(reallocated == NULL) {
 		printf("Memory allocation error\n");
-		free(result);
 		return NULL;
 	}
 	return reallocated;
@@ -75,18 +78,18 @@ char *compress(char *input){
  * @brief Reads the content of an arbitrarily large stream.
  * @return the content of the stream.
  */
+/*@null@*/
 char *get_stream_content(FILE *stream) {
 	char *input = NULL;
 	int input_size = 0;
 	char buffer[1000];
 	
-	while(fgets(buffer, sizeof(buffer), stream) != NULL) {
+	while(fgets(buffer, (int) sizeof(buffer), stream) != NULL) {
 		int new_size = input_size + strlen(buffer);
 		
-		char *new_input = (char *) realloc(input, new_size+1);
+		char *new_input = (char *) realloc(input, (size_t) new_size+1);
 		if(new_input == NULL){
 			printf("Memory allocation error\n");
-			free(input);
 			return NULL;
 		}
 		input = new_input;
