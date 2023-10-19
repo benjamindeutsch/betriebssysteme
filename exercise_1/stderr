@@ -1,0 +1,40 @@
+==661== Memcheck, a memory error detector
+==661== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==661== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==661== Command: ./mycompress -o outfile.txt infile.txt
+==661== 
+==661== Conditional jump or move depends on uninitialised value(s)
+==661==    at 0x484EA2D: strcat (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==661==    by 0x109629: get_stream_content (mycompress.c:98)
+==661==    by 0x109A70: main (mycompress.c:174)
+==661== 
+==661== Invalid read of size 1
+==661==    at 0x484ED24: strlen (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==661==    by 0x109AAC: main (mycompress.c:177)
+==661==  Address 0x4a8f5cc is 0 bytes after a block of size 12 alloc'd
+==661==    at 0x484DCD3: realloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==661==    by 0x10951D: compress (mycompress.c:69)
+==661==    by 0x109A9C: main (mycompress.c:176)
+==661== 
+==661== Invalid read of size 1
+==661==    at 0x484ED24: strlen (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==661==    by 0x48E2A18: fputs (iofputs.c:33)
+==661==    by 0x1096C1: write_to_output (mycompress.c:111)
+==661==    by 0x109ACF: main (mycompress.c:178)
+==661==  Address 0x4a8f5cc is 0 bytes after a block of size 12 alloc'd
+==661==    at 0x484DCD3: realloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==661==    by 0x10951D: compress (mycompress.c:69)
+==661==    by 0x109A9C: main (mycompress.c:176)
+==661== 
+Read: 14 characters
+Written: 12 characters
+==661== 
+==661== HEAP SUMMARY:
+==661==     in use at exit: 0 bytes in 0 blocks
+==661==   total heap usage: 8 allocs, 8 frees, 9,197 bytes allocated
+==661== 
+==661== All heap blocks were freed -- no leaks are possible
+==661== 
+==661== Use --track-origins=yes to see where uninitialised values come from
+==661== For lists of detected and suppressed errors, rerun with: -s
+==661== ERROR SUMMARY: 3 errors from 3 contexts (suppressed: 0 from 0)

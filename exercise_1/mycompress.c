@@ -32,7 +32,7 @@ int get_digit_count(int number){
 char *compress(char *input){
 	assert(input != NULL);
 	//the maximum length of the result is the size of the input * 2
-	char *result = (char *) malloc(strlen(input) * sizeof(char) * 2);
+	char *result = (char *) malloc(strlen(input) * 2 + 1);
 	if(result == NULL){
 		printf("Memory allocation error\n");
 		return NULL;
@@ -66,9 +66,10 @@ char *compress(char *input){
 	}
 	result[result_index] = '\0';
 	
-	char *reallocated = (char *) realloc(result,strlen(result) * sizeof(char));
+	char *reallocated = (char *) realloc(result,strlen(result)+1);
 	if(reallocated == NULL) {
 		printf("Memory allocation error\n");
+		free(result);
 		return NULL;
 	}
 	return reallocated;
@@ -90,6 +91,7 @@ char *get_stream_content(FILE *stream) {
 		char *new_input = (char *) realloc(input, (size_t) new_size+1);
 		if(new_input == NULL){
 			printf("Memory allocation error\n");
+			free(input);
 			return NULL;
 		}
 		input = new_input;
