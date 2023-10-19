@@ -25,7 +25,7 @@ int get_digit_count(int number){
 }
 
 /**
- * Compresses the input string by truncating substrings consisting of the same letter. 
+ * @brief Compresses the input string by truncating substrings consisting of the same letter. 
  * @return the compressed version of the input string.
  */
 char *compress(char *input){
@@ -72,7 +72,7 @@ char *compress(char *input){
 }
 
 /**
- * Reads the content of an arbitrarily large stream.
+ * @brief Reads the content of an arbitrarily large stream.
  * @return the content of the stream.
  */
 char *get_stream_content(FILE *stream) {
@@ -97,7 +97,7 @@ char *get_stream_content(FILE *stream) {
 }
 
 /**
- *	Writes the given string to the file. If the file pointer is NULL the string is printed to stdout.
+ *	@brief Writes the given string to the file. If the file pointer is NULL the string is printed to stdout.
  */
 void write_to_output(FILE *file, char *str) {
 	if(file == NULL){
@@ -127,6 +127,8 @@ int main(int argc, char *argv[]){
 			case '?':
 				printUsageMessage();
 				return EXIT_FAILURE;
+			default:
+				assert(0);
 		}
 	}
 	
