@@ -55,8 +55,7 @@ char *compress(char *input){
 	}
 		
 	result[result_index] = '\0';
-	/*int result_length = result_index + 2;
-	return realloc(result,result_length * sizeof(char));*/
+	return realloc(result,strlen(result) * sizeof(char));
 	return result;
 }
 
