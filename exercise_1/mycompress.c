@@ -26,12 +26,12 @@ char *compress(char *input){
 	//the maximum length of the result is the size of the input * 2
 	int length = strlen(input);
 	char *result = (char *) malloc(length * sizeof(char) * 2);
+	int result_index = 0;
 	int last_char = input[0];
 	int last_char_count = 1;
-	int i = 1;
-	int result_index = 0;
-	bool exit = false;
 	
+	bool exit = false;
+	int i = 1;
 	while(!exit){
 		if(input[i] == '\0'){
 			exit = true;
@@ -53,10 +53,15 @@ char *compress(char *input){
 		}
 		i++;
 	}
-		
 	result[result_index] = '\0';
-	return realloc(result,strlen(result) * sizeof(char));
-	return result;
+	
+	char *reallocated = (char *) realloc(result,strlen(result) * sizeof(char));
+	if(reallocated == NULL) {
+		printf("Memory allocation error\n");
+		free(result);
+		return NULL;
+	}
+	return reallocated;
 }
 
 char *get_stream_content(FILE *stream) {
@@ -119,7 +124,6 @@ int main(int argc, char *argv[]){
 		infiles[i - optind] = argv[i];
 	}
 	
-	
 	if(outfilename != NULL) {
 		outfile = fopen(outfilename, "w");
 		if(outfile == NULL) {
@@ -137,7 +141,9 @@ int main(int argc, char *argv[]){
 		compressed = compress(input);
 		writeLength += strlen(compressed);
 		write_to_output(outfile, compressed);
+		
 		free(input);
+		free(compressed);
 	}else{
 		for(int i = 0; i < infiles_count; i++){
 			FILE *file = fopen(infiles[i], "r");
@@ -149,14 +155,11 @@ int main(int argc, char *argv[]){
 			readLength += strlen(content);
 			char *compressed = compress(content);
 			writeLength += strlen(compressed);
+			write_to_output(outfile, compressed);
 			
-			int success = write_to_output(outfile, compressed);
 			free(content);
 			free(compressed);
 			fclose(file);
-			if(success == 1){
-				return 1;
-			}
 		}
 	}
 	if(outfile != NULL){
