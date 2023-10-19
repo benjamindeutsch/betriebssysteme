@@ -21,7 +21,7 @@ int get_digit_count(int number){
 	return count;
 }
 
-char* compress(char *input){
+char *compress(char *input){
 	assert(input != NULL);
 	//the maximum length of the result is the size of the input * 2
 	int length = strlen(input);
@@ -60,35 +60,14 @@ char* compress(char *input){
 	return result;
 }
 
-char* get_file_content(char* filename) {
-	FILE *file = fopen(filename, "r");
-	if(file == NULL){
-		printf("Could not open %s.\n", filename);
-		return NULL;
-	}
-	fseek(file, 0L, SEEK_END);
-	int length = ftell(file);
-	rewind(file);
-	
-	char *content = (char *) malloc(length);
-	int i = 0;
-	char c;
-	while ((c = fgetc(file)) != EOF)
-    {
-        content[i] = (char) c;
-        i++;
-    }
-	fclose(file);
-	return content;
-}
-
-char* get_stdin_content() {
+char *get_stream_content(FILE *stream) {
 	char *input = NULL;
 	int input_size = 0;
 	char buffer[1000];
 	
-	while(fgets(buffer, sizeof(buffer), stdin) != NULL) {
+	while(fgets(buffer, sizeof(buffer), stream) != NULL) {
 		int new_size = input_size + strlen(buffer);
+		
 		char *new_input = (char *) realloc(input, new_size+1);
 		if(new_input == NULL){
 			printf("Memory allocation error\n");
@@ -102,13 +81,17 @@ char* get_stdin_content() {
 	return input;
 }
 
-int write_to_output(FILE *file, char* str) {
+int write_to_output(FILE *file, char *str) {
 	if(file == NULL){
 		printf("%s", str);
 	}else{
 		fprintf(file, "%s", str);
 	}
 	return 0;
+}
+
+void printUsageMessage() {
+	printf("USAGE: mycompress [-o outfile] [file...]\n");
 }
 
 int main(int argc, char *argv[]){
@@ -118,10 +101,14 @@ int main(int argc, char *argv[]){
 	while((c = getopt(argc,argv,"o:")) != -1){
 		switch(c){
 			case 'o':
+				if(outfilename != NULL) {
+					printUsageMessage();
+					return 1;
+				}
 				outfilename = optarg;
 				break;
 			case '?':
-				printf("SYNOPSIS: mycompress [-o outfile] [file...]\n");
+				printUsageMessage();
 				return 1;
 		}
 	}
@@ -137,30 +124,45 @@ int main(int argc, char *argv[]){
 	if(outfilename != NULL) {
 		outfile = fopen(outfilename, "w");
 		if(outfile == NULL) {
-			printf("An error occured trying to open %s.\n", outfilename);
+			printf("An error occured trying to open the output file \"%s\".\n", outfilename);
 			return 1;
 		}
 	}
 		
-	char* compressed = NULL;
+	int readLength = 0;
+	int writeLength = 0;
+	char *compressed = NULL;
 	if(infiles_count == 0){
-		char *input = get_stdin_content();
+		char *input = get_stream_content(stdin);
+		readLength += strlen(input);
 		compressed = compress(input);
+		writeLength += strlen(compressed);
 		write_to_output(outfile, compressed);
 		free(input);
 	}else{
 		for(int i = 0; i < infiles_count; i++){
-			char *content = get_file_content(infiles[i]);
+			FILE *file = fopen(infiles[i], "r");
+			if(file == NULL) {
+				printf("An error occured trying to open the input file \"%s\".\n", infiles[i]);
+				return 1;
+			}
+			char *content = get_stream_content(file);
+			readLength += strlen(content);
 			char *compressed = compress(content);
+			writeLength += strlen(compressed);
+			
 			int success = write_to_output(outfile, compressed);
+			free(content);
+			free(compressed);
+			fclose(file);
 			if(success == 1){
 				return 1;
 			}
-			free(content);
-			free(compressed);
 		}
 	}
 	if(outfile != NULL){
 		fclose(outfile);
 	}
+	
+	fprintf(stderr, "Read: %d characters\nWritten: %d characters\n", readLength, writeLength);
 }
