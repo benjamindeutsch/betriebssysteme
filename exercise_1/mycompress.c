@@ -5,6 +5,9 @@
 #include <string.h>
 #include <unistd.h>
 
+/**
+ * @return the number of digits of the parameter.
+ */
 int get_digit_count(int number){
 	int count = 0;
 	if(number < 0){
@@ -21,6 +24,10 @@ int get_digit_count(int number){
 	return count;
 }
 
+/**
+ * Compresses the input string by truncating substrings consisting of the same letter. 
+ * @return the compressed version of the input string.
+ */
 char *compress(char *input){
 	assert(input != NULL);
 	//the maximum length of the result is the size of the input * 2
@@ -64,6 +71,10 @@ char *compress(char *input){
 	return reallocated;
 }
 
+/**
+ * Reads the content of an arbitrarily large stream.
+ * @return the content of the stream.
+ */
 char *get_stream_content(FILE *stream) {
 	char *input = NULL;
 	int input_size = 0;
@@ -85,16 +96,18 @@ char *get_stream_content(FILE *stream) {
 	return input;
 }
 
-int write_to_output(FILE *file, char *str) {
+/**
+ *	Writes the given string to the file. If the file pointer is NULL the string is printed to stdout.
+ */
+void write_to_output(FILE *file, char *str) {
 	if(file == NULL){
 		printf("%s", str);
 	}else{
 		fprintf(file, "%s", str);
 	}
-	return 0;
 }
 
-void printUsageMessage() {
+void printUsageMessage(void) {
 	printf("USAGE: mycompress [-o outfile] [file...]\n");
 }
 
@@ -107,13 +120,13 @@ int main(int argc, char *argv[]){
 			case 'o':
 				if(outfilename != NULL) {
 					printUsageMessage();
-					return 1;
+					return EXIT_FAILURE;
 				}
 				outfilename = optarg;
 				break;
 			case '?':
 				printUsageMessage();
-				return 1;
+				return EXIT_FAILURE;
 		}
 	}
 	
@@ -128,7 +141,7 @@ int main(int argc, char *argv[]){
 		outfile = fopen(outfilename, "w");
 		if(outfile == NULL) {
 			printf("An error occured trying to open the output file \"%s\".\n", outfilename);
-			return 1;
+			return EXIT_FAILURE;
 		}
 	}
 		
@@ -149,7 +162,7 @@ int main(int argc, char *argv[]){
 			FILE *file = fopen(infiles[i], "r");
 			if(file == NULL) {
 				printf("An error occured trying to open the input file \"%s\".\n", infiles[i]);
-				return 1;
+				return EXIT_FAILURE;
 			}
 			char *content = get_stream_content(file);
 			readLength += strlen(content);
@@ -167,4 +180,5 @@ int main(int argc, char *argv[]){
 	}
 	
 	fprintf(stderr, "Read: %d characters\nWritten: %d characters\n", readLength, writeLength);
+	return EXIT_SUCCESS;
 }
