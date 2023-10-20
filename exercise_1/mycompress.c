@@ -81,19 +81,24 @@ static char *compress(const char *input){
  */
 /*@null@*/
 static char *get_stream_content(FILE *stream) {
-	char *input = NULL;
+	char *input = (char *) malloc(1);
+	if(input == NULL){
+		printf("Memory allocation error\n");
+		return NULL;
+	}
+	input[0] = '\0';
 	int input_size = 0;
 	char buffer[1000];
 	
 	while(fgets(buffer, (int) sizeof(buffer), stream) != NULL) {
 		int new_size = input_size + strlen(buffer);
-		
 		char *new_input = (char *) realloc(input, (size_t) new_size+1);
 		if(new_input == NULL){
 			printf("Memory allocation error\n");
 			free(input);
 			return NULL;
 		}
+		
 		input = new_input;
 		strcat(input, buffer);
 		input_size = new_size;
