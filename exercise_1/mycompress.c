@@ -8,7 +8,7 @@
 /**
  * @return the number of digits of the parameter.
  */
-int get_digit_count(int number){
+static int get_digit_count(int number){
 	int count = 0;
 	if(number < 0){
 		number = number * (-1);
@@ -29,7 +29,7 @@ int get_digit_count(int number){
  * @return the compressed version of the input string.
  */
 /*@null@*/
-char *compress(char *input){
+static char *compress(const char *input){
 	assert(input != NULL);
 	//the maximum length of the result is the size of the input * 2
 	char *result = (char *) malloc(strlen(input) * 2 + 1);
@@ -80,7 +80,7 @@ char *compress(char *input){
  * @return the content of the stream.
  */
 /*@null@*/
-char *get_stream_content(FILE *stream) {
+static char *get_stream_content(FILE *stream) {
 	char *input = NULL;
 	int input_size = 0;
 	char buffer[1000];
@@ -104,7 +104,7 @@ char *get_stream_content(FILE *stream) {
 /**
  *	@brief Writes the given string to the file. If the file pointer is NULL the string is printed to stdout.
  */
-void write_to_output(FILE *file, char *str) {
+static void write_to_output(/*@null@*/ FILE *file, char *str) {
 	if(file == NULL){
 		printf("%s", str);
 	}else{
@@ -112,7 +112,7 @@ void write_to_output(FILE *file, char *str) {
 	}
 }
 
-void printUsageMessage(void) {
+static void printUsageMessage(void) {
 	printf("USAGE: mycompress [-o outfile] [file...]\n");
 }
 
@@ -140,7 +140,9 @@ int main(int argc, char *argv[]){
 	int infiles_count = argc - optind;
 	int x = argc;
 	char *infiles[infiles_count];
-	for(int i = optind; i < x; i++) {
+	int i;
+	
+	for(i = optind; i < x; i++) {
 		infiles[i - optind] = argv[i];
 	}
 	
@@ -154,26 +156,46 @@ int main(int argc, char *argv[]){
 		
 	int readLength = 0;
 	int writeLength = 0;
-	char *compressed = NULL;
 	if(infiles_count == 0){
-		char *input = get_stream_content(stdin);
-		readLength += strlen(input);
-		compressed = compress(input);
+		char *content = get_stream_content(stdin);
+		if(content == NULL){
+			free(content);
+			return EXIT_FAILURE;
+		}
+		char *compressed = compress(content);
+		if(compressed == NULL){
+			free(content);
+			free(compressed);
+			return EXIT_FAILURE;
+		}
+		
+		readLength += strlen(content);
 		writeLength += strlen(compressed);
 		write_to_output(outfile, compressed);
 		
-		free(input);
+		free(content);
 		free(compressed);
 	}else{
-		for(int i = 0; i < infiles_count; i++){
+		for(i = 0; i < infiles_count; i++){
 			FILE *file = fopen(infiles[i], "r");
 			if(file == NULL) {
 				printf("An error occured trying to open the input file \"%s\".\n", infiles[i]);
 				return EXIT_FAILURE;
 			}
+			
 			char *content = get_stream_content(file);
-			readLength += strlen(content);
+			if(content == NULL){
+				free(content);
+				return EXIT_FAILURE;
+			}
 			char *compressed = compress(content);
+			if(compressed == NULL){
+				free(content);
+				free(compressed);
+				return EXIT_FAILURE;
+			}
+			
+			readLength += strlen(content);
 			writeLength += strlen(compressed);
 			write_to_output(outfile, compressed);
 			
