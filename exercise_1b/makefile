@@ -5,7 +5,7 @@ TARGET = cpair
 all: $(TARGET)
 
 $(TARGET): cpair.c
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) -o $@ $< -lm
 
 clean:
 	rm -f $(TARGET)
