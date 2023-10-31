@@ -249,13 +249,17 @@ static void print_points(point_t p1, point_t p2) {
 	}
 	
 	
-	printf("%f %f\n%f %f\n", p1.x, p1.y, p2.x, p2.y);
+	printf("%.3f %.3f\n%.3f %.3f\n", p1.x, p1.y, p2.x, p2.y);
 }
 
 int main() {
 	int i, j;
 	point_array_t points = readPoints(NULL);
-	if(points.length <= 1) {
+	if(points.length <= 0){
+		free(points.array);
+		return EXIT_FAILURE;
+	}
+	if(points.length == 1) {
 		free(points.array);
 		return EXIT_SUCCESS;
 	}
