@@ -236,17 +236,18 @@ static double get_distance(point_t p1, point_t p2) {
  *
  */
 static void print_points(point_t p1, point_t p2) {
-	if(p1.x == p1.x) {
+	if(p1.x > p2.x){
+		point_t swap = p1;
+		p1 = p2;
+		p2 = swap;
+	}else if(p1.x == p2.x) {
 		if(p1.y > p2.y) {
 			point_t swap = p1;
 			p1 = p2;
 			p2 = swap;
 		}
-	}else if(p1.x > p2.x){
-		point_t swap = p1;
-		p1 = p2;
-		p2 = swap;
 	}
+	
 	
 	printf("%f %f\n%f %f\n", p1.x, p1.y, p2.x, p2.y);
 }
