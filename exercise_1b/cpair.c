@@ -246,11 +246,11 @@ static void wait_for_child(pid_t pid) {
 	waitpid(pid, &status, 0);
 	if (WIFEXITED(status)) {
 		if(WEXITSTATUS(status) != 0){
-			fprtinf(stderr,"Child with PID %d exited with status %d\n", pid, WEXITSTATUS(status));
+			fprintf(stderr,"Child with PID %d exited with status %d\n", pid, WEXITSTATUS(status));
 			exit(EXIT_FAILURE);
 		}
 	} else {
-		fprtinf(stderr,"Child with PID %d terminated abnormally\n", pid);
+		fprintf(stderr,"Child with PID %d terminated abnormally\n", pid);
 		exit(EXIT_FAILURE);
 	}
 }
