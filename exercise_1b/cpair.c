@@ -32,7 +32,7 @@ typedef struct {
  * @return the points array and its length
  */
 static point_array_t readPoints(/*@null@*/FILE *input) {
-	int arr_length = 2;
+	size_t arr_length = 2;
 	point_array_t points;
 	points.array = malloc(arr_length * sizeof(point_t));
 	if(points.array == NULL) {
@@ -51,7 +51,11 @@ static point_array_t readPoints(/*@null@*/FILE *input) {
 		if(success != 2){
 			end = true;
 		}else {
-			getchar();
+			int c = getchar();
+			if(c != (int)'\n' && c != -1){
+				//invalid input
+				exit(EXIT_FAILURE);
+			}
 			points.length++;
 			if(points.length >= arr_length){
 				arr_length *= 2;
@@ -80,6 +84,10 @@ static splitted_point_array_t split_points_equally(point_array_t points) {
 	result.p1.array = malloc(result.p1.length * sizeof(point_t));
 	result.p2.length = points.length - mid;
 	result.p2.array = malloc(result.p2.length * sizeof(point_t));
+	if(result.p1.array == NULL || result.p2.array == NULL){
+		printf("Memory allocation error\n");
+		exit(EXIT_FAILURE);
+	}
 	for(i = 0; i < points.length; i++) {
 		if(i < mid){
 			result.p1.array[i] = points.array[i];
@@ -99,16 +107,30 @@ static splitted_point_array_t split_points_equally(point_array_t points) {
 static splitted_point_array_t split_points_by_threshold(point_array_t points, float threshold, bool splitByX) {
 	splitted_point_array_t result;
 	int i, n = 0;
+	float val;
 	for(i = 0; i < points.length; i++) {
-		if(points.array[i].y < threshold) {
+		if(splitByX) {
+			val = points.array[i].x;
+		}else{
+			val = points.array[i].y;
+		}
+		if(val < threshold) {
 			n++;
 		}
 	}
 	result.p1.length = result.p2.length = 0;
 	result.p1.array = malloc(n * sizeof(point_t));
+	if(result.p1.array == NULL){
+		printf("Memory allocation error\n");
+		exit(EXIT_FAILURE);
+	}
 	result.p2.array = malloc((points.length - n) * sizeof(point_t));
+	if(result.p2.array == NULL){
+		printf("Memory allocation error\n");
+		free(result.p1.array);
+		exit(EXIT_FAILURE);
+	}
 	for(i = 0; i < points.length; i++) {
-		float val;
 		if(splitByX) {
 			val = points.array[i].x;
 		}else{
@@ -173,7 +195,7 @@ static splitted_point_array_t split_points(point_array_t points) {
  * @param other_pipe_out both ends of this pipe are closed
  * @return the process id of the child process
  */
-pid_t init_child_process(int *pipe_in, int* pipe_out, int* other_pipe_in, int* other_pipe_out) {
+static pid_t init_child_process(int *pipe_in, int* pipe_out, int* other_pipe_in, int* other_pipe_out) {
 	pid_t child_pid = fork();
 	if(child_pid < 0){
 		printf("Fork failed\n");
@@ -314,50 +336,39 @@ int main() {
 	fclose(file_out1);
 	fclose(file_out2);
 	
-	//merge the results from the children
-	bool free_splitted_p1 = true;
-	bool free_splitted_p2 = true;
-	if(closest_pair1.length > 0){
-		free(splitted.p1.array);
-		free_splitted_p1 = false;
-		splitted.p1 = closest_pair1;
-	}
-	if(closest_pair2.length > 0){
-		free(splitted.p2.array);
-		free_splitted_p2 = false;
-		splitted.p2 = closest_pair2;
-	}
-	int merged_length = splitted.p1.length + splitted.p2.length;
-	point_t merged[merged_length];
-	for(i = 0; i < splitted.p1.length; i++){
-		merged[i] = splitted.p1.array[i];
-	}
-	for(i = 0; i < splitted.p2.length; i++){
-		merged[i+splitted.p1.length] = splitted.p2.array[i];
-	}
-	
-	//find the closest pair of points in the merged array
 	double smallest_dist = -1;
 	point_t p1;
 	point_t p2;
-	for(i = 0; i < merged_length; i++){
-		for(j = i+1; j < merged_length; j++){
-			double dist = get_distance(merged[i], merged[j]);
-			if(dist < smallest_dist || smallest_dist == -1){
-				p1 = merged[i];
-				p2 = merged[j];
+	//find closest pair of the two children
+	if(closest_pair1.length == 2){
+		p1 = closest_pair1.array[0];
+		p2 = closest_pair1.array[1];
+		smallest_dist = get_distance(p1,p2);
+	}
+	if(closest_pair2.length == 2){
+		double dist = get_distance(closest_pair2.array[0],closest_pair2.array[1]);
+		if(dist < smallest_dist || smallest_dist == -1) {
+			p1 = closest_pair2.array[0];
+			p2 = closest_pair2.array[1];
+			smallest_dist = dist;
+		}
+	}
+	
+	//check whether there is a close pair of points between the two children
+	for(i = 0; i < splitted.p1.length; i++){
+		for(j = 0; j < splitted.p2.length; j++){
+			double dist = get_distance(splitted.p1.array[i], splitted.p2.array[j]);
+			if(dist < smallest_dist){
+				p1 = splitted.p1.array[i];
+				p2 = splitted.p2.array[j];
 				smallest_dist = dist;
 			}
 		}
 	}
 	print_points(p1,p2);
 	
-	if(free_splitted_p1){
-		free(splitted.p1.array);
-	}
-	if(free_splitted_p2){
-		free(splitted.p2.array);
-	}
+	free(splitted.p1.array);
+	free(splitted.p2.array);
 	free(closest_pair1.array);
 	free(closest_pair2.array);
 	free(points.array);
