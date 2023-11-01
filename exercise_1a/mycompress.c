@@ -1,6 +1,8 @@
 /*
+ * @file
+ * @brief mycompress module for compressing strings
+ *
  * @autor Benjamin Deutsch (12215881)
- * @brief a module to compress strings
  * @date 30.10.2023
  */
 #include <stdio.h>
