@@ -1,13 +1,14 @@
 /*
+ * @file
+ * @brief cpair module for finding the closest pair of points from a list of points from stdin
+ *
  * @autor Benjamin Deutsch (12215881)
- * @brief a module to find the closest pair of points from a list of points
  * @date 01.11.2023
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdbool.h>
-#include <assert.h>
 #include <sys/wait.h>
 #include <math.h>
 
@@ -39,23 +40,19 @@ static point_array_t readPoints(/*@null@*/FILE *input) {
 		perror("Memory allocation error\n");
 		exit(EXIT_FAILURE);
 	}
+	if(input == NULL){
+		input = stdin;
+	}
 	points.length = 0;
-	bool end = false;
-	while(end == false) {
-		int success;
-		if(input == NULL){
-			success = scanf("%f %f", &points.array[points.length].x, &points.array[points.length].y);
-		}else{
-			success = fscanf(input, "%f %f", &points.array[points.length].x, &points.array[points.length].y);
+	char buffer[100]; //large enough for two floating point numbers
+	while(fgets(buffer, sizeof(buffer), input) != NULL) {
+		//empty lines are ignored
+		if((buffer[0] == '\n' && buffer[1] == '\0')){
+			continue;
 		}
-		if(success != 2){
-			end = true;
-		}else {
-			int c = getchar();
-			if(c != (int)'\n' && c != -1){
-				fprintf(stderr,"Invalid input\n");
-				exit(EXIT_FAILURE);
-			}
+		char nextChar = -1;
+		int successCount = sscanf(buffer,"%f %f %c", &points.array[points.length].x, &points.array[points.length].y, &nextChar);
+		if((successCount == 3 && nextChar == '\n') || (successCount == 2 && nextChar == -1)){
 			points.length++;
 			if(points.length >= arr_length){
 				arr_length *= 2;
@@ -67,6 +64,10 @@ static point_array_t readPoints(/*@null@*/FILE *input) {
 				}
 				points.array = reallocated;
 			}
+		}else {
+			fprintf(stderr, "Invalid input\n");
+			free(points.array);
+			exit(EXIT_FAILURE);
 		}
 	}
 	return points;
@@ -285,6 +286,7 @@ int main() {
 	int i, j;
 	point_array_t points = readPoints(NULL);
 	if(points.length <= 0){
+		printf("Invalid input\n");
 		free(points.array);
 		return EXIT_FAILURE;
 	}
