@@ -44,10 +44,17 @@ static point_array_t readPoints(/*@null@*/FILE *input) {
 		input = stdin;
 	}
 	points.length = 0;
+	bool empty_line_encountered = false;
 	char buffer[100]; //large enough for two floating point numbers
 	while(fgets(buffer, sizeof(buffer), input) != NULL) {
-		//empty lines are ignored
+		//empty lines are only allowed at the end of the input
+		if(empty_line_encountered) {
+			fprintf(stderr, "Invalid input\n");
+			free(points.array);
+			exit(EXIT_FAILURE);
+		}
 		if((buffer[0] == '\n' && buffer[1] == '\0')){
+			empty_line_encountered = true;
 			continue;
 		}
 		char nextChar = -1;
