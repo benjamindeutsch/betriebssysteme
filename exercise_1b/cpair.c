@@ -30,7 +30,7 @@ typedef struct {
 /**
  * @brief reads a list of points from a file or stdin
  * @param input specifies the file which should be read from, if null this function reads from stdin
- * @return the points array and its length
+ * @return the points array and its length, if an error occured the array of the struct is NULL
  */
 static point_array_t readPoints(/*@null@*/FILE *input) {
 	size_t arr_length = 2;
@@ -38,7 +38,7 @@ static point_array_t readPoints(/*@null@*/FILE *input) {
 	points.array = malloc(arr_length * sizeof(point_t));
 	if(points.array == NULL) {
 		perror("Memory allocation error\n");
-		exit(EXIT_FAILURE);
+		return points;
 	}
 	if(input == NULL){
 		input = stdin;
@@ -51,7 +51,8 @@ static point_array_t readPoints(/*@null@*/FILE *input) {
 		if(empty_line_encountered) {
 			fprintf(stderr, "Invalid input\n");
 			free(points.array);
-			exit(EXIT_FAILURE);
+			points.array = NULL;
+			return points;
 		}
 		if((buffer[0] == '\n' && buffer[1] == '\0')){
 			empty_line_encountered = true;
@@ -67,14 +68,16 @@ static point_array_t readPoints(/*@null@*/FILE *input) {
 				if(reallocated == NULL){
 					perror("Memory allocation error\n");
 					free(points.array);
-					exit(EXIT_FAILURE);
+					points.array = NULL;
+					return points;
 				}
 				points.array = reallocated;
 			}
 		}else {
 			fprintf(stderr, "Invalid input\n");
 			free(points.array);
-			exit(EXIT_FAILURE);
+			points.array = NULL;
+			return points;
 		}
 	}
 	return points;
@@ -83,25 +86,27 @@ static point_array_t readPoints(/*@null@*/FILE *input) {
 /**
  * @brief splits a point array into two halves
  * @param points the points to be splitted
- * @return the splitted array
+ * @return the splitted array, if a memory allocation error occured both arrays are NULL
  */
 static splitted_point_array_t split_points_equally(point_array_t points) {
 	splitted_point_array_t result;
 	int i, mid = points.length/2;
 	
 	result.p1.length = mid;
+	result.p2.length = points.length - mid;
+	
 	result.p1.array = malloc(result.p1.length * sizeof(point_t));
 	if(result.p1.array == NULL){
 		perror("Memory allocation error\n");
-		exit(EXIT_FAILURE);
+		result.p2.array = NULL;
+		return result;
 	}
-	
-	result.p2.length = points.length - mid;
 	result.p2.array = malloc(result.p2.length * sizeof(point_t));
 	if(result.p2.array == NULL){
 		perror("Memory allocation error\n");
 		free(result.p1.array);
-		exit(EXIT_FAILURE);
+		result.p1.array = NULL;
+		return result;
 	}
 	
 	for(i = 0; i < points.length; i++) {
@@ -119,7 +124,7 @@ static splitted_point_array_t split_points_equally(point_array_t points) {
  * @param points the points to be splitted
  * @param threshold the value that is used to divide the points into two arrays
  * @param splitByX if true, the x coordinates of the points will be compared to the threshold, otherwise the y coordinates
- * @return the splitted array
+ * @return the splitted array, if a memory allocation error occured both arrays are NULL
  */
 static splitted_point_array_t split_points_by_threshold(point_array_t points, float threshold, bool splitByX) {
 	splitted_point_array_t result;
@@ -139,13 +144,15 @@ static splitted_point_array_t split_points_by_threshold(point_array_t points, fl
 	result.p1.array = malloc(n * sizeof(point_t));
 	if(result.p1.array == NULL){
 		perror("Memory allocation error\n");
-		exit(EXIT_FAILURE);
+		result.p2.array = NULL;
+		return result;
 	}
 	result.p2.array = malloc((points.length - n) * sizeof(point_t));
 	if(result.p2.array == NULL){
 		perror("Memory allocation error\n");
 		free(result.p1.array);
-		exit(EXIT_FAILURE);
+		result.p1.array = NULL;
+		return result;
 	}
 	for(i = 0; i < points.length; i++) {
 		if(splitByX) {
@@ -217,7 +224,7 @@ static pid_t init_child_process(int *pipe_in, int* pipe_out, int* other_pipe_in,
 	pid_t child_pid = fork();
 	if(child_pid < 0){
 		perror("Fork failed\n");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 	if(child_pid == 0){
 		//close all pipes from the other child process
@@ -239,7 +246,7 @@ static pid_t init_child_process(int *pipe_in, int* pipe_out, int* other_pipe_in,
 		
 		execlp("./cpair", "cpair", NULL);
 		perror("Execution in child process failed\n");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 	//return the child process id in the parent process
 	return child_pid;
@@ -249,18 +256,19 @@ static pid_t init_child_process(int *pipe_in, int* pipe_out, int* other_pipe_in,
  * @brief waits for a child process to be terminated, exits programm if the child did not terminate with status EXIT_FAILURE
  * @param pid the process id of the child process
  */
-static void wait_for_child(pid_t pid) {
+static int wait_for_child(pid_t pid) {
 	int status;
 	waitpid(pid, &status, 0);
 	if (WIFEXITED(status)) {
 		if(WEXITSTATUS(status) != 0){
 			fprintf(stderr,"Child with PID %d exited with status %d\n", pid, WEXITSTATUS(status));
-			exit(EXIT_FAILURE);
+			return -1;
 		}
 	} else {
 		fprintf(stderr,"Child with PID %d terminated abnormally\n", pid);
-		exit(EXIT_FAILURE);
+		return -1;
 	}
+	return 0;
 }
 
 /**
@@ -289,9 +297,22 @@ static void print_points(point_t p1, point_t p2) {
 	printf("%.3f %.3f\n%.3f %.3f\n", p1.x, p1.y, p2.x, p2.y);
 }
 
+/**
+ * @brief closes both ends of the given pipe
+ * @param pipe the pipe which should be closed
+ */
+static void close_pipe(int pipe[]) {
+	close(pipe[0]);
+	close(pipe[1]);
+}
+
 int main() {
 	int i, j;
 	point_array_t points = readPoints(NULL);
+	if(points.array == NULL){
+		free(points.array);
+		return EXIT_FAILURE;
+	}
 	if(points.length <= 0){
 		printf("Invalid input\n");
 		free(points.array);
@@ -307,14 +328,36 @@ int main() {
 		return EXIT_SUCCESS;
 	}
 	splitted_point_array_t splitted = split_points(points);
+	free(points.array);
+	if(splitted.p1.array == NULL){
+		return EXIT_FAILURE;
+	}
 	
 	//initialize children and pipes
 	int pipe_in1[2];
-	int pipe_out1[2];
-	int pipe_in2[2];
-	int pipe_out2[2];
-	if(pipe(pipe_in1) == -1 || pipe(pipe_out1) == -1 || pipe(pipe_in2) == -1 || pipe(pipe_out2) == -1) {
+	if(pipe(pipe_in1) == -1){
 		fprintf(stderr,"Pipe creation failed\n");
+		return EXIT_FAILURE;
+	}
+	int pipe_out1[2];
+	if(pipe(pipe_out1) == -1){
+		fprintf(stderr,"Pipe creation failed\n");
+		close_pipe(pipe_in1);
+		return EXIT_FAILURE;
+	}
+	int pipe_in2[2];
+	if(pipe(pipe_in2) == -1){
+		fprintf(stderr,"Pipe creation failed\n");
+		close_pipe(pipe_in1);
+		close_pipe(pipe_out1);
+		return EXIT_FAILURE;
+	}
+	int pipe_out2[2];
+	if(pipe(pipe_out2) == -1){
+		fprintf(stderr,"Pipe creation failed\n");
+		close_pipe(pipe_in1);
+		close_pipe(pipe_out1);
+		close_pipe(pipe_in2);
 		return EXIT_FAILURE;
 	}
 	pid_t child_pid1 = init_child_process(pipe_in1, pipe_out1, pipe_in2, pipe_out2);
@@ -323,12 +366,36 @@ int main() {
 	close(pipe_out1[1]);
 	close(pipe_in2[0]);
 	close(pipe_out2[1]);
+	if(child_pid1 < 0 || child_pid2 < 0){
+		close(pipe_in1[1]);
+		close(pipe_out1[0]);
+		close(pipe_in2[1]);
+		close(pipe_out2[0]);
+		free(splitted.p1.array);
+		free(splitted.p2.array);
+		return EXIT_FAILURE;
+	}
 	
 	//give children their input
 	FILE *file_in1 = fdopen(pipe_in1[1],"w");
-	FILE *file_in2 = fdopen(pipe_in2[1],"w");
-	if(file_in1 == NULL || file_in2 == NULL){
+	if(file_in1 == NULL){
 		perror("An error occured while trying to write to pipe");
+		close(pipe_out1[0]);
+		close(pipe_in2[1]);
+		close(pipe_out2[0]);
+		free(splitted.p1.array);
+		free(splitted.p2.array);
+		return EXIT_FAILURE;
+	}
+	FILE *file_in2 = fdopen(pipe_in2[1],"w");
+	if(file_in2 == NULL){
+		perror("An error occured while trying to write to pipe");
+		fclose(file_in1);
+		close(pipe_out1[0]);
+		close(pipe_in2[1]);
+		close(pipe_out2[0]);
+		free(splitted.p1.array);
+		free(splitted.p2.array);
 		return EXIT_FAILURE;
 	}
 	
@@ -342,16 +409,52 @@ int main() {
 	fclose(file_in2);
 	
 	//wait for the children to process their input
-	wait_for_child(child_pid1);
-	wait_for_child(child_pid2);
+	int status1 = wait_for_child(child_pid1);
+	int status2 = wait_for_child(child_pid2);
+	if(status1 == -1 || status2 == -1){
+		free(splitted.p1.array);
+		free(splitted.p2.array);
+		close(pipe_out1[0]);
+		close(pipe_out2[0]);
+		return EXIT_FAILURE;
+	}
 	
 	//read childrens output
 	FILE *file_out1 = fdopen(pipe_out1[0],"r");
+	if(file_out1 == NULL){
+		perror("An error occured while trying to read from the pipe");
+		free(splitted.p1.array);
+		free(splitted.p2.array);
+		close(pipe_out1[0]);
+		close(pipe_out2[0]);
+		return EXIT_FAILURE;
+	}
 	FILE *file_out2 = fdopen(pipe_out2[0],"r");
+	if(file_out1 == NULL || file_out2 == NULL){
+		perror("An error occured while trying to read from the pipe");
+		if(file_out1 != NULL){
+			fclose(file_out1);
+		}
+		free(splitted.p1.array);
+		free(splitted.p2.array);
+		close(pipe_out1[0]);
+		close(pipe_out2[0]);
+		return EXIT_FAILURE;
+	}
 	point_array_t closest_pair1 = readPoints(file_out1);
 	point_array_t closest_pair2 = readPoints(file_out2);
 	fclose(file_out1);
 	fclose(file_out2);
+	if(closest_pair1.array == NULL || closest_pair2.array == NULL){
+		if(closest_pair1.array != NULL){
+			free(closest_pair1.array);
+		}else if(closest_pair2.array != NULL){
+			free(closest_pair2.array);
+		}
+		free(splitted.p1.array);
+		free(splitted.p2.array);
+		return EXIT_FAILURE;
+	}
 	
 	//find closest pair of the two childrens results
 	double smallest_dist = -1;
@@ -388,6 +491,5 @@ int main() {
 	free(splitted.p2.array);
 	free(closest_pair1.array);
 	free(closest_pair2.array);
-	free(points.array);
 	return EXIT_SUCCESS;
 }
