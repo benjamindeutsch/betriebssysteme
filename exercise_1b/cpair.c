@@ -214,13 +214,14 @@ static splitted_point_array_t split_points(point_array_t points) {
 
 /**
  * @brief creates a child process which executes the programm recursively, closes and redirects the according pipe ends
+ * @param path the path to this programm
  * @param pipe_in stdin is redirected to the read end of this pipe
  * @param pipe_out stdout is rediredted to the write end of this pipe
  * @param other_pipe_in both ends of this pipe are closed
  * @param other_pipe_out both ends of this pipe are closed
  * @return the process id of the child process
  */
-static pid_t init_child_process(int *pipe_in, int* pipe_out, int* other_pipe_in, int* other_pipe_out) {
+static pid_t init_child_process(char path[],int *pipe_in, int* pipe_out, int* other_pipe_in, int* other_pipe_out) {
 	pid_t child_pid = fork();
 	if(child_pid < 0){
 		perror("Fork failed\n");
@@ -244,7 +245,7 @@ static pid_t init_child_process(int *pipe_in, int* pipe_out, int* other_pipe_in,
 		dup2(pipe_out[1],1);
 		close(pipe_out[1]);
 		
-		execlp("./cpair", "cpair", NULL);
+		execlp(path, path, NULL);
 		perror("Execution in child process failed\n");
 		return -1;
 	}
@@ -306,7 +307,7 @@ static void close_pipe(int pipe[]) {
 	close(pipe[1]);
 }
 
-int main() {
+int main(int argc, char *argv[]) {
 	int i, j;
 	point_array_t points = readPoints(NULL);
 	if(points.array == NULL){
@@ -360,8 +361,8 @@ int main() {
 		close_pipe(pipe_in2);
 		return EXIT_FAILURE;
 	}
-	pid_t child_pid1 = init_child_process(pipe_in1, pipe_out1, pipe_in2, pipe_out2);
-	pid_t child_pid2 = init_child_process(pipe_in2, pipe_out2, pipe_in1, pipe_out1);
+	pid_t child_pid1 = init_child_process(argv[0],pipe_in1, pipe_out1, pipe_in2, pipe_out2);
+	pid_t child_pid2 = init_child_process(argv[0],pipe_in2, pipe_out2, pipe_in1, pipe_out1);
 	close(pipe_in1[0]);
 	close(pipe_out1[1]);
 	close(pipe_in2[0]);
