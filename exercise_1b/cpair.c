@@ -431,11 +431,9 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 	FILE *file_out2 = fdopen(pipe_out2[0],"r");
-	if(file_out1 == NULL || file_out2 == NULL){
+	if(ffile_out2 == NULL){
 		perror("An error occured while trying to read from the pipe");
-		if(file_out1 != NULL){
-			fclose(file_out1);
-		}
+		fclose(file_out1);
 		free(splitted.p1.array);
 		free(splitted.p2.array);
 		close(pipe_out1[0]);
