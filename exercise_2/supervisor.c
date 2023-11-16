@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
 		}
 		if(best_size == -1 || solution_size < best_size) {
 			best_size = solution_size;
-			printf("Solution with %d edges: %s\n", best_size, str);
+			//printf("Solution with %d edges: %s\n", best_size, str);
 		}
 		free(str);
 		if(checkN){

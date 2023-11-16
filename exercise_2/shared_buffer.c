@@ -8,10 +8,10 @@
 #include <fcntl.h>
 #include <string.h>
 
-const char SHARED_MEMORY_KEY[] = "feedback_arc_set_shm";
-const char WRITE_SEMAPHORE_KEY[] = "feedback_arc_set_buffer_write";
-const char BUFFER_FREE_SEMAPHORE_KEY[] = "feedback_arc_set_buffer_free";
-const char BUFFER_USED_SEMAPHORE_KEY[] = "feedback_arc_set_buffer_used";
+const char SHARED_MEMORY_KEY[] = "12215881_feedback_arc_set_shm";
+const char WRITE_SEMAPHORE_KEY[] = "12215881_feedback_arc_set_buffer_write";
+const char BUFFER_FREE_SEMAPHORE_KEY[] = "12215881_feedback_arc_set_buffer_free";
+const char BUFFER_USED_SEMAPHORE_KEY[] = "12215881_feedback_arc_set_buffer_used";
 sem_t *write_sem = NULL, *free_sem = NULL, *used_sem = NULL;
 
 int create_shared_memory(void) {
