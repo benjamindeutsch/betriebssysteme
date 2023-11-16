@@ -1,33 +1,10 @@
-/*
- * @file
- * @brief adjecency_list module provides an implementation of an adjacency list to store a graph
- *
- * @autor Benjamin Deutsch (12215881)
- * @date 16.11.2023
- */
 #include "adjacency_list.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
 
-/*
- * @brief checks whether the given list contains a vertex with the given id
- * @param list the list that the vertex should be searched in
- * @param vertex the vertex that should be searched for
- * @return true if the list contains the vertex, false otherwise
- */
-static bool contains(adjacency_list_t *list, int vertex) {
-	int i;
-	for(i = 0; i < list->length; i++){
-		if(list->vertices[i].id == vertex){
-			return true;
-		}
-	}
-	return false;
-}
-
-/*
+/**
  * @brief returns the vertex with the given id from the given list
  * @param list the list that the vertex should be searched in
  * @param vertex the vertex that should be searched for
@@ -59,6 +36,20 @@ adjacency_list_t* create_list(void){
 		return NULL;
 	}
 	return list;
+}
+
+bool contains(adjacency_list_t *list, int vertex) {
+	return index_of(list,vertex) != -1;
+}
+
+int index_of(adjacency_list_t* list, int vertex) {
+	int i;
+	for(i = 0; i < list->length; i++){
+		if(list->vertices[i].id == vertex){
+			return i;
+		}
+	}
+	return -1;
 }
 
 int add_vertex(adjacency_list_t *list, int vertex) {
@@ -147,20 +138,4 @@ char* get_edges_string(adjacency_list_t *list) {
 		}
 	}
 	return str;
-}
-
-int main(int argc, char *argv[]) {
-	adjacency_list_t *list = create_list();
-	int i;
-	for(i = 0; i < 10; i++){
-		add_vertex(list,i);
-	}
-	for(i = 0; i < 10; i++){
-		add_edge(list,i,(i+1)%10);
-	}
-	char *str = get_edges_string(list);
-	printf("%s\n", str);
-	
-	free(str);
-	free_list_memory(list);
 }
