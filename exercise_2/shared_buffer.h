@@ -55,9 +55,9 @@ int unlink_semaphores(void);
 int close_semaphores(void);
 
 /**
- * @brief writes a solution to the solutions buffer
+ * @brief writes a solution to the solutions buffer if the quit flag is not true
  * @details writes a solution to the solutions circular buffer. This function may have to wait for data to be read in order
- *          to be able to write new data into the buffer.
+ *          to be able to write new data into the buffer. If the quit flag is true this function does not write to the buffer.
  * @param data the shared data struct that should be accessed
  * @param solution a string representation of a feedback arc set
  */

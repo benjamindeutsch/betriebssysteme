@@ -93,18 +93,22 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 	
+	sleep(w);
+	
 	int best_size = -1;
 	bool acyclic = false;
+	int asdf = 0;
 	while(!quit && !acyclic && (!checkN || n > 0)) {
+		asdf++;
 		char *str = read_solution(shared_data);
 		int solution_size = get_solution_size(str);
 		if(solution_size == 0) {
-			printf("The graph is acyclic!");
+			printf("The graph is acyclic!\n");
 			acyclic = true;
 		}
 		if(best_size == -1 || solution_size < best_size) {
-			printf("%s\n", str);
 			best_size = solution_size;
+			printf("Solution with %d edges: %s\n", best_size, str);
 		}
 		free(str);
 		if(checkN){
@@ -120,11 +124,13 @@ int main(int argc, char *argv[]) {
 		perror("supervisor: Shared memory unmapping failed");
 		return EXIT_FAILURE;
 	}
-	
 	if(unlink_shared_memory() == -1) {
 		return EXIT_FAILURE;
 	};
 	if(unlink_semaphores() == -1){
+		return EXIT_FAILURE;
+	}
+	if(close_semaphores() == -1){
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;

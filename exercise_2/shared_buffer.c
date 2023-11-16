@@ -128,6 +128,7 @@ int close_semaphores(void) {
 void write_solution(shared_data_t* data, char *solution){
 	sem_wait(free_sem);
 	sem_wait(write_sem);
+	if(data->quit) return;
 	strncpy(data->solutions[data->write_pos],solution,DATA_ENTRY_SIZE);
 	data->write_pos = (data->write_pos + 1) % DATA_SIZE;
 	sem_post(write_sem);

@@ -26,8 +26,7 @@ static void shuffle(adjacency_list_t *list) {
 	int i;
 	for(i = list->length-1; i > 0; i--) {
 		//generate a random number x <= i
-		int r = rand();
-		int x = r % i;
+		int x = rand() % (i+1);
 		vertex_node_t swap = list->vertices[i];
 		list->vertices[i] = list->vertices[x];
 		list->vertices[x] = swap;
@@ -104,7 +103,6 @@ int main(int argc, char *argv[]) {
 		if(edgeCount <= 8) {
 			char *str = get_edges_string(feedback_arc);
 			if(shared_data->quit) {
-				printf("quit received\n");
 				quit = true;
 			}else{
 				write_solution(shared_data, str);
