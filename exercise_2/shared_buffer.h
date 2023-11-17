@@ -49,6 +49,12 @@ int unlink_shared_memory(void);
 int unlink_semaphores(void);
 
 /**
+ * @brief releases all of the processes waiting for the semaphores by calling sem_post unit its value is non-negative
+ * @return 0 if all the semaphores are non-negative, -1 if an error occured
+ */
+int release_waiting_processes(void);
+
+/**
  * @brief closes all of the semaphores that were created for the shared memory access
  * @return 0 if closing the semaphores was successfull, -1 otherwise
  */
@@ -60,8 +66,9 @@ int close_semaphores(void);
  *          to be able to write new data into the buffer. If the quit flag is true this function does not write to the buffer.
  * @param data the shared data struct that should be accessed
  * @param solution a string representation of a feedback arc set
+ * @return true if the process calling this method should quit, false otherwise
  */
-void write_solution(shared_data_t* data, char *solution);
+bool write_solution(shared_data_t* data, char *solution);
 
 /**
  * @brief reads a solution from the solutions buffer

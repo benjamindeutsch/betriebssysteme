@@ -14,6 +14,24 @@ const char BUFFER_FREE_SEMAPHORE_KEY[] = "12215881_feedback_arc_set_buffer_free"
 const char BUFFER_USED_SEMAPHORE_KEY[] = "12215881_feedback_arc_set_buffer_used";
 sem_t *write_sem = NULL, *free_sem = NULL, *used_sem = NULL;
 
+/**
+ * @brief releases all of the processes waiting for the given semaphore by calling sem_post unit its value is non-negative
+ * @param semaphore the semaphore whose value should be increased to be non-negative
+ * @return 0 if all the semaphores are non-negative, -1 if an error occured
+ */
+static int release_semaphore(sem_t *semaphore) {
+	int x, value;
+	while((x = sem_getvalue(semaphore, &value)) != -1 && value < 1) {
+		sem_post(semaphore);
+		value++;
+	}
+	if(x == -1){
+		perror("shared_buffer: Error releasing semaphore");
+		return -1;
+	}
+	return 0;
+}
+
 int create_shared_memory(void) {
 	//create or open shared memory
 	int shmfd = shm_open(SHARED_MEMORY_KEY, O_RDWR | O_CREAT, 0600);
@@ -125,14 +143,34 @@ int close_semaphores(void) {
 	return 0;
 }
 
-void write_solution(shared_data_t* data, char *solution){
+int release_waiting_processes(void) {
+	if(release_semaphore(free_sem) == -1 || release_semaphore(write_sem) == -1){
+		return -1;
+	}
+	return 0;
+}
+
+bool write_solution(shared_data_t* data, char *solution){
+	if(data->quit) {
+		return true;
+	}
+	
 	sem_wait(free_sem);
+	if(data->quit) {
+		sem_post(free_sem);
+		return true;
+	}
 	sem_wait(write_sem);
-	if(data->quit) return;
+	if(data->quit) {
+		sem_post(free_sem);
+		sem_post(write_sem);
+		return true;
+	};
 	strncpy(data->solutions[data->write_pos],solution,DATA_ENTRY_SIZE);
 	data->write_pos = (data->write_pos + 1) % DATA_SIZE;
 	sem_post(write_sem);
 	sem_post(used_sem);
+	return false;
 }
 
 char* read_solution(shared_data_t* data){

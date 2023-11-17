@@ -102,16 +102,13 @@ int main(int argc, char *argv[]) {
 		
 		if(edgeCount <= 8) {
 			char *str = get_edges_string(feedback_arc);
-			if(shared_data->quit) {
-				quit = true;
-			}else{
-				write_solution(shared_data, str);
-			}
+			quit = write_solution(shared_data, str);
 			free(str);
 		}
 		free_list_memory(feedback_arc);
 	}
 	
+	free_list_memory(list);
 	if (munmap(shared_data, sizeof(shared_data_t)) == -1){
 		perror("supervisor: Shared memory unmapping failed");
 		return EXIT_FAILURE;
@@ -119,6 +116,5 @@ int main(int argc, char *argv[]) {
 	if(close_semaphores() == -1){
 		return EXIT_FAILURE;
 	}
-	free_list_memory(list);
 	return EXIT_SUCCESS;
 }

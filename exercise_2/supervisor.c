@@ -120,6 +120,9 @@ int main(int argc, char *argv[]) {
 		printf("The graph might not be acyclic, best solution removes %d edges.\n", best_size);
 	}
 	
+	if(release_waiting_processes() == -1) {
+		return EXIT_FAILURE;
+	}
 	if (munmap(shared_data, sizeof(shared_data_t)) == -1){
 		perror("supervisor: Shared memory unmapping failed");
 		return EXIT_FAILURE;
