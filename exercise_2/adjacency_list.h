@@ -24,7 +24,7 @@ typedef struct vertex_node {
 
 /**
  * @brief stores an array of vertex nodes, each of which stores the adjacent vertices, where the vertex is the origin.
- * @detail stores an array of vertex nodes, each of which stores the adjacent vertices, where the vertex is the origin.
+ * @details stores an array of vertex nodes, each of which stores the adjacent vertices, where the vertex is the origin.
  *         the length property represents the length of the list of vertices
  *         the size property represents the maximum number of vertices that can be stored in the list with the currently 
  *         allocated memory

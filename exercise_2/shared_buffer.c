@@ -36,27 +36,27 @@ int create_shared_memory(void) {
 	//create or open shared memory
 	int shmfd = shm_open(SHARED_MEMORY_KEY, O_RDWR | O_CREAT, 0600);
 	if(shmfd == -1){
-		perror("shared_buffer: Error opening shared memory.");
+		perror("shared_buffer: Error opening shared memory");
 		return -1;
 	}
 	//set shared memory size
 	if(ftruncate(shmfd, sizeof(shared_data_t)) < 0){
 		close(shmfd);
-		perror("shared_buffer: Error initializing shared memory.");
+		perror("shared_buffer: Error initializing shared memory");
 		return -1;
 	}
 	
 	write_sem = sem_open(WRITE_SEMAPHORE_KEY, O_CREAT | O_EXCL, 0600, 1);
 	if(write_sem == SEM_FAILED){
 		close(shmfd);
-		perror("shared_buffer: Error creating semaphore.");
+		perror("shared_buffer: Error creating semaphore");
 		return -1;
 	}
 	free_sem = sem_open(BUFFER_FREE_SEMAPHORE_KEY, O_CREAT | O_EXCL, 0600, DATA_SIZE);
 	if(free_sem == SEM_FAILED){
 		close(shmfd);
 		sem_close(write_sem);
-		perror("shared_buffer: Error creating semaphore.");
+		perror("shared_buffer: Error creating semaphore");
 		return -1;
 	}
 	used_sem = sem_open(BUFFER_USED_SEMAPHORE_KEY, O_CREAT | O_EXCL, 0600, 0);
@@ -64,7 +64,7 @@ int create_shared_memory(void) {
 		close(shmfd);
 		sem_close(write_sem);
 		sem_close(free_sem);
-		perror("shared_buffer: Error creating semaphore.");
+		perror("shared_buffer: Error creating semaphore");
 		return -1;
 	}
 	
@@ -74,21 +74,21 @@ int create_shared_memory(void) {
 int init_shared_memory(void) {
 	int shmfd = shm_open(SHARED_MEMORY_KEY, O_RDWR, 0600);
 	if(shmfd == -1){
-		perror("shared_buffer: Error opening shared memory.");
+		perror("shared_buffer: Error opening shared memory");
 		return -1;
 	}
 	
 	write_sem = sem_open(WRITE_SEMAPHORE_KEY, O_RDWR);
 	if(write_sem == SEM_FAILED){
 		close(shmfd);
-		perror("shared_buffer: Error opening semaphore.");
+		perror("shared_buffer: Error opening semaphore");
 		return -1;
 	}
 	free_sem = sem_open(BUFFER_FREE_SEMAPHORE_KEY, O_RDWR);
 	if(free_sem == SEM_FAILED){
 		close(shmfd);
 		sem_close(write_sem);
-		perror("shared_buffer: Error opening semaphore.");
+		perror("shared_buffer: Error opening semaphore");
 		return -1;
 	}
 	used_sem = sem_open(BUFFER_USED_SEMAPHORE_KEY, O_RDWR);
@@ -96,7 +96,7 @@ int init_shared_memory(void) {
 		close(shmfd);
 		sem_close(write_sem);
 		sem_close(free_sem);
-		perror("shared_buffer: Error opening semaphore.");
+		perror("shared_buffer: Error opening semaphore");
 		return -1;
 	}
 	
@@ -105,7 +105,7 @@ int init_shared_memory(void) {
 
 int unlink_shared_memory(void) {
 	if(shm_unlink(SHARED_MEMORY_KEY) == -1) {
-		perror("shared_buffer: Error unlinking shared memory.");
+		perror("shared_buffer: Error unlinking shared memory");
 		return -1;
 	}
 	return 0;
@@ -113,11 +113,11 @@ int unlink_shared_memory(void) {
 
 int unlink_semaphores(void) {
 	if(sem_unlink(WRITE_SEMAPHORE_KEY) == -1){
-		perror("shared_buffer: Error unlinking write semaphore.");
+		perror("shared_buffer: Error unlinking write semaphore");
 		return -1;
 	}
 	if(sem_unlink(BUFFER_FREE_SEMAPHORE_KEY) == -1){
-		perror("shared_buffer: Error unlinking free semaphore.");
+		perror("shared_buffer: Error unlinking free semaphore");
 		return -1;
 	}
 	if(sem_unlink(BUFFER_USED_SEMAPHORE_KEY) == -1){
@@ -129,15 +129,15 @@ int unlink_semaphores(void) {
 
 int close_semaphores(void) {
 	if(sem_close(write_sem) == -1){
-		perror("shared_buffer: Error closing write semaphore.");
+		perror("shared_buffer: Error closing write semaphore");
 		return -1;
 	}
 	if(sem_close(free_sem) == -1){
-		perror("shared_buffer: Error closing free semaphore.");
+		perror("shared_buffer: Error closing free semaphore");
 		return -1;
 	}
 	if(sem_close(used_sem) == -1){
-		perror("shared_buffer: Error closing used semaphore.");
+		perror("shared_buffer: Error closing used semaphore");
 		return -1;
 	}
 	return 0;
@@ -154,7 +154,6 @@ bool write_solution(shared_data_t* data, char *solution){
 	if(data->quit) {
 		return true;
 	}
-	
 	sem_wait(free_sem);
 	if(data->quit) {
 		sem_post(free_sem);
@@ -176,7 +175,7 @@ bool write_solution(shared_data_t* data, char *solution){
 char* read_solution(shared_data_t* data){
 	char *str = malloc(DATA_ENTRY_SIZE);
 	if(str == NULL){
-		perror("shared_buffer: Memory allocation error.");
+		perror("shared_buffer: Memory allocation error");
 		return NULL;
 	}
 	sem_wait(used_sem);

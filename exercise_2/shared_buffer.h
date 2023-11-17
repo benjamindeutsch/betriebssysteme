@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief shared_buffer module provides functions to manage shared memory with a circular buffer
+ * @brief shared_buffer module provides functions to manage shared memory containing a circular buffer
  *
  * @autor Benjamin Deutsch (12215881)
  * @date 16.11.2023

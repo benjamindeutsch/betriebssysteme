@@ -33,6 +33,16 @@ static void shuffle(adjacency_list_t *list) {
 	}
 }
 
+/**
+ * @brief gets a graph as input and finds random feedback arc set solutions
+ * @details gets a list of edges as positional arguments and creates an adjacency list from the input.
+ *          The adjacency list entries are randomly shuffled to generate random feedback arc set solutions,
+ *          which are written to the shared memory repeatedly until the supervisor tells the generator to 
+ *          terminate.
+ * @param argc the number of arguments
+ * @param argv should only contain positional arguments seperated by spaces with the following syntax: [int]-[int]
+ * @return EXIT_SUCCESS if the programm executed successfully, EXIT_FAILURE otherwise
+ */
 int main(int argc, char *argv[]) {
 	if(argc <= 1){
 		fprintf(stderr, "generator: No input provided\n");
