@@ -33,7 +33,7 @@ static int release_semaphore(sem_t *semaphore) {
 }
 
 int create_shared_memory(void) {
-	//create or open shared memory
+	//create shared memory
 	int shmfd = shm_open(SHARED_MEMORY_KEY, O_RDWR | O_CREAT, 0600);
 	if(shmfd == -1){
 		perror("shared_buffer: Error opening shared memory");
@@ -67,7 +67,6 @@ int create_shared_memory(void) {
 		perror("shared_buffer: Error creating semaphore");
 		return -1;
 	}
-	
 	return shmfd;
 }
 
@@ -154,12 +153,20 @@ bool write_solution(shared_data_t* data, char *solution){
 	if(data->quit) {
 		return true;
 	}
-	sem_wait(free_sem);
+	if(sem_wait(free_sem) < 0) {
+		perror("shared_buffer: Error waiting for free semaphore");
+		sem_post(free_sem);
+		return true;
+	}
 	if(data->quit) {
 		sem_post(free_sem);
 		return true;
 	}
-	sem_wait(write_sem);
+	if(sem_wait(write_sem) < 0) {
+		perror("shared_buffer: Error waiting for write semaphore");
+		sem_post(free_sem);
+		return true;
+	}
 	if(data->quit) {
 		sem_post(free_sem);
 		sem_post(write_sem);
@@ -167,8 +174,15 @@ bool write_solution(shared_data_t* data, char *solution){
 	};
 	strncpy(data->solutions[data->write_pos],solution,DATA_ENTRY_SIZE);
 	data->write_pos = (data->write_pos + 1) % DATA_SIZE;
-	sem_post(write_sem);
-	sem_post(used_sem);
+	if(sem_post(write_sem) < 0) {
+		perror("shared_buffer: Error posting write semaphore");
+		sem_post(used_sem);
+		return true;
+	}
+	if(sem_post(used_sem) < 0) {
+		perror("shared_buffer: Error posting used semaphore");
+		return true;
+	}
 	return false;
 }
 
@@ -178,9 +192,17 @@ char* read_solution(shared_data_t* data){
 		perror("shared_buffer: Memory allocation error");
 		return NULL;
 	}
-	sem_wait(used_sem);
+	if(sem_wait(used_sem) < 0) {
+		perror("shared_buffer: Error waiting for used semaphore");
+		free(str);
+		return NULL;
+	}
 	strncpy(str, data->solutions[data->read_pos],DATA_ENTRY_SIZE);
-	sem_post(free_sem);
+	if(sem_post(free_sem) < 0) {
+		perror("shared_buffer: Error posting free semaphore");
+		free(str);
+		return NULL;
+	}
 	data->read_pos = (data->read_pos + 1) % DATA_SIZE;
 	return str;
 }
