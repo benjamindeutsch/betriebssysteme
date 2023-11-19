@@ -14,7 +14,7 @@
 #define DATA_ENTRY_SIZE 180 //large enough to store 8 pairs of ints (16 * 10 digits + 8 * "-" + 7 * " ")
 
 typedef struct shared_data {
-	char solutions[DATA_SIZE][500];
+	char solutions[DATA_SIZE][DATA_ENTRY_SIZE];
 	int write_pos;
 	int read_pos;
 	bool quit;
