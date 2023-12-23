@@ -19,28 +19,39 @@
 /**
  * @brief prints the usage message for the http client to stdout and exits the programm with EXIT_FAILURE
  */
-static void print_usage_message() {
+static void exit_with_usage_message(void) {
 	printf("SYNOPSIS: client [-p PORT] [ -o FILE | -d DIR ] URL\n");
 	exit(EXIT_FAILURE);
 }
 
 /**
- * @brief prints the given error message to stderr and exits the programm with EXIT_FAILURE
+ * @brief prints an error message to stderr
+ * @param programm_name the name of the programm (argv[0])
  * @param msg the error message
  */
-static void print_error_message(char *msg) {
-	fprintf(stderr,"client: %s\n", msg);
+static void error_message(char *programm_name, char *msg) {
+	fprintf(stderr,"%s: %s\n", programm_name, msg);
+}
+
+/**
+ * @brief prints the given error message to stderr and exits the programm with EXIT_FAILURE
+ * @param programm_name the name of the programm (argv[0])
+ * @param msg the error message
+ */
+static void exit_with_error_message(char *programm_name, char *msg) {
+	error_message(programm_name, msg);
 	exit(EXIT_FAILURE);
 }
 
 /**
  * @brief extracts a substring from the input.
  * @details extracts a substring from the input. The substring ends before a character of the delimiters string is encountered.
+ * @param programm_name the name of the programm (argv[0])
  * @param input the string from which the substring should be extracted from
- * @delimiters the substring ends before any of the characters of the delimiters string is encountered
+ * @param delimiters the substring ends before any of the characters of the delimiters string is encountered
  * @return the substring or NULL if a memory allocation error occured
  */
-static char* extract_substring(char *input, char *delimiters) {
+static char* extract_substring(char *programm_name, char *input, char *delimiters) {
 	char *end = strpbrk(input, delimiters);
 	
 	//if no delimiter is found, the end is the end of the url
@@ -50,7 +61,7 @@ static char* extract_substring(char *input, char *delimiters) {
 	size_t length = end - input;
 	char *substr = (char *)malloc(length + 1);
 	if(substr == NULL) {
-		perror("client: memory allocation error");
+		error_message(programm_name,"memory allocation error");
 		return NULL;
 	}
 	strncpy(substr, input, length);
@@ -62,11 +73,12 @@ static char* extract_substring(char *input, char *delimiters) {
 /**
  * @brief creates the content of a http get request for the given file of the given host
  * @details creates the content of a http 1.1 get request with the Connection: close header for the given file of the given host
+ * @param programm_name the name of the programm (argv[0])
  * @param host the host to which the request should be made
  * @param file the requested file
  * @return the http get request content
  */
-static char* get_http_get_request(char* host, char* file) {
+static char* get_http_get_request(char *programm_name, char* host, char* file) {
 	char *get_str = "GET ";
 	char *http_str = " HTTP/1.1\r\n";
 	char *host_str = "Host: ";
@@ -74,7 +86,7 @@ static char* get_http_get_request(char* host, char* file) {
 	
 	char *request = malloc(strlen(get_str) + strlen(http_str) + strlen(host_str) + strlen(connection_str) + strlen(host) + strlen(file) + 1);
 	if(request == NULL) {
-		perror("client: memory allocation error");
+		error_message(programm_name,"memory allocation error");
 		return NULL;
 	}
 	
@@ -91,15 +103,16 @@ static char* get_http_get_request(char* host, char* file) {
 
 /**
  * @brief reads the content of a file and returns it as a string
+ * @param programm_name the name of the programm (argv[0])
  * @param file the file whose content should be read
  * @return the file content as a string
  */
-static char* read_file_content(FILE *file) {
+static char* read_file_content(char *programm_name, FILE *file) {
 	size_t size = 1024;
 	char buff[size];
 	char *content = malloc(size);
 	if(content == NULL){
-		perror("client: memory allocation error");
+		error_message(programm_name,"memory allocation error");
 		return NULL;
 	}
 	content[0] = '\0';
@@ -108,7 +121,7 @@ static char* read_file_content(FILE *file) {
 			size = size * 2;
 			char *reallocated = realloc(content, size);
 			if(reallocated == NULL) {
-				perror("client: memory allocation error");
+				error_message(programm_name,"memory allocation error");
 				free(content);
 				return NULL;
 			}
@@ -122,16 +135,17 @@ static char* read_file_content(FILE *file) {
 /**
  * @brief checks whether an http response is valid
  * @details checks whether an http response is valid by looking at the first line of the response.
+ * @param programm_name the name of the programm (argv[0])
  * @param response the http response to be checked
  * @return 1 if a memory allocation error occured
  *         2 if the response is not valid, in addition "Protocol error!" is printed to stderr
  *         3 if the response is valid and the response status is not 200, in addition the status and the status text are printed to stderr
  *         0 if the response is valid and the status status is 200
  */
-static int check_http_response(const char *response) {
+static int check_http_response(char *programm_name, const char *response) {
 	char *response_copy = strdup(response);
 	if(response_copy == NULL) {
-		perror("client: memory allocation error");
+		error_message(programm_name,"memory allocation error");
 		return 1;
 	}
 	char *expected_http_token = "HTTP/1.1";
@@ -166,12 +180,13 @@ static int check_http_response(const char *response) {
  * @details if out_filename and out_dir are both NULL stdout is returned
  *          if out_filename is not null, then the FILE pointer to the file with that name of out_filename is returned
  *          if out_filename is null and out_dir is not null, then the FILE pointer points to the file with the name of http_filename within the directory out_dir. If the http_filename is "/" the filename is assumed to be index.html
+ * @param programm_name the name of the programm (argv[0])
  * @param http_filename the name of the file that was queried from the http server
  * @out_filename the filename specified by the user, can be NULL
  * @out_dir the directory specified by the user, can be NULL
  * @return the file to which the response content should be written to
  */
-static FILE *get_out_file(char *http_filename, char *out_filename, char *out_dir) {
+static FILE *get_out_file(char *programm_name, char *http_filename, char *out_filename, char *out_dir) {
 	if(out_filename == NULL && out_dir == NULL) {
 		return stdout;
 	}
@@ -180,7 +195,7 @@ static FILE *get_out_file(char *http_filename, char *out_filename, char *out_dir
 	if(out_filename != NULL) {
 		out_file = fopen(out_filename, "w");
 	} else {
-		char* filename_without_params = extract_substring(http_filename, "?");
+		char* filename_without_params = extract_substring(programm_name,http_filename, "?");
 		if(filename_without_params == NULL) {
 			return NULL;
 		}
@@ -190,7 +205,7 @@ static FILE *get_out_file(char *http_filename, char *out_filename, char *out_dir
 			char *reallocated = realloc(filename_without_params,strlen(default_filename)+1);
 			if(reallocated == NULL) {
 				free(filename_without_params);
-				perror("client: memory allocation error");
+				error_message(programm_name,"memory allocation error");
 				return NULL;
 			}
 			filename_without_params = reallocated;
@@ -208,13 +223,14 @@ static FILE *get_out_file(char *http_filename, char *out_filename, char *out_dir
 	}
 	
 	if(out_file == NULL) {
-		perror("client: fopen out file error");
+		error_message(programm_name,"fopen out file error");
 		return NULL;
 	}
 	return out_file;
 }
 
 int main(int argc, char *argv[]) {
+	char *programm_name = argv[0];
 	char *port = "80";
 	bool port_flag = false;
 	char *out_filename = NULL, *out_dir = NULL, *url = NULL;
@@ -224,7 +240,7 @@ int main(int argc, char *argv[]) {
 		switch(c){
 			case 'p':
 				if(port_flag) {
-					print_error_message("Invalid parameters");
+					exit_with_error_message(programm_name,"Invalid parameters");
 				}
 				port_flag = true;
 				char *endptr;
@@ -236,18 +252,18 @@ int main(int argc, char *argv[]) {
 					port_num <= 0 || 
 					port_num >= 65535 || 
 					*endptr != '\0') {
-					print_error_message("Invalid port");
+					exit_with_error_message(programm_name,"Invalid port");
 				}
 				break;
 			case 'o':
 				if(out_filename != NULL || out_dir != NULL) {
-					print_error_message("Invalid parameters");
+					exit_with_error_message(programm_name,"Invalid parameters");
 				}
 				out_filename = optarg;
 				break;
 			case 'd':
 				if(out_filename != NULL || out_dir != NULL) {
-					print_error_message("Invalid parameters");
+					exit_with_error_message(programm_name,"Invalid parameters");
 				}
 				out_dir = optarg;
 				break;
@@ -258,26 +274,26 @@ int main(int argc, char *argv[]) {
 	
 	//get host and file
 	if(argc-optind != 1) {
-		print_usage_message();
+		exit_with_usage_message();
 	}
 	url = argv[optind];
 	char* protocol = "http://";
 	if(strncmp(url,protocol,strlen(protocol)) != 0){
-		print_error_message("Invalid protocol");
+		exit_with_error_message(programm_name,"Invalid protocol");
 	}
-	char *host = extract_substring(url+strlen(protocol),";/?:@=&");
+	char *host = extract_substring(programm_name,url+strlen(protocol),";/?:@=&");
 	if(host == NULL){
 		return EXIT_FAILURE;
 	}
 	if(strlen(host) == 0){
 		free(host);
-		print_error_message("Invalid host");
+		exit_with_error_message(programm_name,"Invalid host");
 	}
 	
 	char *http_filename;
 	int file_start_index = strlen(protocol)+strlen(host);
 	if(strlen(url) > file_start_index+1) {
-		http_filename = extract_substring(url+file_start_index,"");
+		http_filename = extract_substring(programm_name,url+file_start_index,"");
 		if(http_filename == NULL){
 			free(host);
 			return EXIT_FAILURE;
@@ -307,7 +323,7 @@ int main(int argc, char *argv[]) {
 		http_filename[0] = '/';
 		http_filename[1] = '\0';
 	}
-	char *http_request = get_http_get_request(host,http_filename);
+	char *http_request = get_http_get_request(programm_name,host,http_filename);
 	if(http_request == NULL){
 		free(host);
 		free(http_filename);
@@ -324,7 +340,7 @@ int main(int argc, char *argv[]) {
 		free(http_filename);
 		free(host);
 		free(http_request);
-		print_error_message("getaddrinfo error");
+		exit_with_error_message(programm_name,"getaddrinfo error");
 	}
 	free(host);
 	int sockfd = socket(ai->ai_family, ai->ai_socktype,ai->ai_protocol);
@@ -357,7 +373,7 @@ int main(int argc, char *argv[]) {
 		free(http_filename);
 		free(http_request);
 		fclose(sockfile);
-		print_error_message("socket fputs error");
+		exit_with_error_message(programm_name,"socket fputs error");
 	}
 	free(http_request);
 	if(fflush(sockfile) == EOF) {
@@ -368,7 +384,7 @@ int main(int argc, char *argv[]) {
 	}
 	
 	//read response
-	char *response = read_file_content(sockfile);
+	char *response = read_file_content(programm_name,sockfile);
 	fclose(sockfile);
 	if(response == NULL){
 		free(http_filename);
@@ -377,7 +393,7 @@ int main(int argc, char *argv[]) {
 	
 	//check http response status
 	int status;
-	if((status = check_http_response(response)) != 0) {
+	if((status = check_http_response(programm_name,response)) != 0) {
 		free(response);
 		free(http_filename);
 		return status;
@@ -395,7 +411,7 @@ int main(int argc, char *argv[]) {
 		content = content + strlen(content_start);
 	}
 	
-	FILE *out_file = get_out_file(http_filename, out_filename, out_dir);
+	FILE *out_file = get_out_file(programm_name,http_filename, out_filename, out_dir);
 	if(out_file == NULL) {
 		free(http_filename);
 		free(response);
