@@ -72,6 +72,12 @@ static void exit_with_error_message(char *programm_name, char *msg) {
 	exit(EXIT_FAILURE);
 }
 
+/**
+ * @brief returns the value of the Content-Length header
+ * @details returns the value of the Content-Length header. If the header is not found or the value of the header is not a number, 0 is returned.
+ * @param headers the http headers
+ * @return the value of the Content-Length header
+ */
 unsigned long get_content_length(const char *headers) {
 	const char *search_str = "Content-Length: ";
 	const size_t search_str_len = strlen(search_str);
@@ -95,7 +101,7 @@ unsigned long get_content_length(const char *headers) {
  * @brief reads the content of a file and returns it as a string
  * @param programm_name the name of the programm (argv[0])
  * @param file the file whose content should be read
- * @param breakAtNewline if true, then this function stops reading as soon as a an empty line ("\r\n") is encountered
+ * @param stopAtEmptyLine if true, then this function stops reading as soon as a an empty line ("\r\n") is encountered
  * @return the file content as a string
  */
 static char* read_file_content(char *programm_name, FILE *file, bool stopAtEmptyLine) {
@@ -129,8 +135,12 @@ static char* read_file_content(char *programm_name, FILE *file, bool stopAtEmpty
 /**
  * @brief sends a http response
  * @details writes an http response with the given status, status message and content to the given file. The file is closed after this function executed.
- *
- *
+ * @param connfile the file to which the response should be written to
+ * @param programm_name the name of the programm (argv[0])
+ * @param status the response status
+ * @param status_message the response status message
+ * @param content the content of the response
+ * @return true if the response has been written to the file successfully, false otherwise
  */
 static bool send_response(FILE *connfile, char *programm_name, char *status, char *status_message, char *content) {
 	bool statusIs200 = false;
@@ -199,6 +209,7 @@ int main(int argc, char *argv[]) {
 	sigaction(SIGINT, &siga, NULL);
 	sigaction(SIGTERM, &siga, NULL);
 
+	//get the programm arguments
 	char *programm_name = argv[0], *index_filename = "/index.html", *doc_root;
 	long port = 8080;
 	bool port_flag = false, index_filename_flag = false;
@@ -238,6 +249,7 @@ int main(int argc, char *argv[]) {
 	}
 	doc_root = argv[optind];	
 	
+	//create socket
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if(sockfd < 0) {
 		exit_with_error_message(programm_name, "Socket error");
