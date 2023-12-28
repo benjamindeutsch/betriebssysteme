@@ -72,13 +72,33 @@ static void exit_with_error_message(char *programm_name, char *msg) {
 	exit(EXIT_FAILURE);
 }
 
+unsigned long get_content_length(const char *headers) {
+	const char *search_str = "Content-Length: ";
+	const size_t search_str_len = strlen(search_str);
+
+	const char *start = strstr(headers, search_str);
+	if (start == NULL) {
+		return 0;  // Content-Length header not found
+	}
+
+	start += search_str_len;
+	char *endptr;
+	unsigned long length = strtoul(start, &endptr, 10);
+	if (start == endptr) {
+		return 0;
+	}
+
+	return length;
+}
+
 /**
  * @brief reads the content of a file and returns it as a string
  * @param programm_name the name of the programm (argv[0])
  * @param file the file whose content should be read
+ * @param breakAtNewline if true, then this function stops reading as soon as a an empty line ("\r\n") is encountered
  * @return the file content as a string
  */
-static char* read_file_content(char *programm_name, FILE *file) {
+static char* read_file_content(char *programm_name, FILE *file, bool stopAtEmptyLine) {
 	size_t size = 1024;
 	char buff[size];
 	char *content = malloc(size);
@@ -99,7 +119,7 @@ static char* read_file_content(char *programm_name, FILE *file) {
 			content = reallocated;
 		}
 		strcat(content,buff);
-		if(strcmp(buff, "\r\n") == 0) {
+		if(stopAtEmptyLine && strcmp(buff, "\r\n") == 0) {
 			break;
 		}
 	}
@@ -113,6 +133,10 @@ static char* read_file_content(char *programm_name, FILE *file) {
  *
  */
 static bool send_response(FILE *connfile, char *programm_name, char *status, char *status_message, char *content) {
+	bool statusIs200 = false;
+	if(strcmp(status, "200") == 0) {
+		statusIs200 = true;
+	}
 	char *http_str = "HTTP/1.1 ";
 	char *connection_str = "Connection: close\r\n\r\n";
 	char *content_length_label_str = "Content-Length: ";
@@ -135,12 +159,14 @@ static bool send_response(FILE *connfile, char *programm_name, char *status, cha
 	strcat(response, " ");
 	strcat(response, status_message);
 	strcat(response, "\r\n");
-	strcat(response, date_label_str);
-	strcat(response, date_str);
-	strcat(response, "\r\n");
-	strcat(response, content_length_label_str);
-	strcat(response, content_length_str);
-	strcat(response, "\r\n");
+	if(statusIs200) {
+		strcat(response, date_label_str);
+		strcat(response, date_str);
+		strcat(response, "\r\n");
+		strcat(response, content_length_label_str);
+		strcat(response, content_length_str);
+		strcat(response, "\r\n");
+	}
 	strcat(response, connection_str);
 	strcat(response, content);
 	strcat(response, "\r\n\r\n");
@@ -152,6 +178,7 @@ static bool send_response(FILE *connfile, char *programm_name, char *status, cha
 	}
 	
 	if(fflush(connfile) == EOF) {
+		perror("fflush");
 		error_message(programm_name, "fflush response error");
 		fclose(connfile);
 		return false;
@@ -230,7 +257,9 @@ int main(int argc, char *argv[]) {
 	}
 	
 	while(!quit) {
+		waiting = true;
 		int connfd = accept(sockfd, NULL, NULL);
+		waiting = false;
 		if(connfd < 0) {
 			exit_with_error_message(programm_name, "Accept error");
 		}
@@ -239,14 +268,16 @@ int main(int argc, char *argv[]) {
 			exit_with_error_message(programm_name, "Fdopen error");
 		}
 		
-		char *request = read_file_content(programm_name, connfile);
+		char *request = read_file_content(programm_name, connfile, true);
 		if(request == NULL) {
 			fclose(connfile);
 			exit_with_error_message(programm_name, "read request error");
 		}
-		if(request == NULL) {
-			error_message(programm_name,"memory allocation error");
-			return 1;
+		
+		unsigned long content_length = get_content_length(request);
+		unsigned long i;
+		for(i = 0; i < content_length; i++) {
+			fgetc(connfile);
 		}
 		
 		char *http_method = strtok(request, " ");
@@ -254,12 +285,12 @@ int main(int argc, char *argv[]) {
 		char *http_token = strtok(NULL, "\r\n");
 		if(http_method == NULL || request_path  == NULL || http_token == NULL || strcmp(http_token, "HTTP/1.1") != 0) {
 			free(request);
-			send_response(connfile, programm_name, "400", "Bad Request", "");
+			send_response(connfile, programm_name, "400", "(Bad Request)", "");
 			continue;
 		}
 		if(strcmp(http_method, "GET") != 0) {
 			free(request);
-			send_response(connfile, programm_name, "501", "Not implemented", "");
+			send_response(connfile, programm_name, "501", "(Not Implemented)", "");
 			continue;
 		}
 		if(strcmp(request_path, "/") == 0) {
@@ -267,26 +298,30 @@ int main(int argc, char *argv[]) {
 		}
 		
 		//open file
-		char full_file_path[strlen(doc_root) + strlen(request_path) + 3];
+		char full_file_path[strlen(doc_root) + strlen(request_path) + 4];
 		full_file_path[0] = '\0';
 		strcat(full_file_path, "./");
 		strcat(full_file_path, doc_root);
+		if(request_path[0] != '/') {
+			strcat(full_file_path, "/");
+		}
 		strcat(full_file_path, request_path);
 		free(request);
 		
 		FILE *response_file = fopen(full_file_path, "r");
 		if(response_file == NULL) {
-			send_response(connfile, programm_name, "404", "Not Found", "");
+			send_response(connfile, programm_name, "404", "(Not Found)", "");
 			continue;
 		}
 		
-		char *response_content = read_file_content(programm_name, response_file);
+		char *response_content = read_file_content(programm_name, response_file, false);
 		if(response_content == NULL) {
-			send_response(connfile, programm_name, "404", "Not Found", "");
+			send_response(connfile, programm_name, "404", "(Not Found)", "");
 		}else{
 			send_response(connfile, programm_name, "200", "OK", response_content);
 			free(response_content);
 		}
 		fclose(response_file);
 	}
+	cleanup();
 }
